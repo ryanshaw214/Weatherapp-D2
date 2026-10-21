@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WearWeather - Smart Outfit & Weather Planner</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="theme-sunny">
+    <div class="app-container">
+        <!-- Sidebar Navigation & Settings -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-shirt brand-icon"></i>
+                <h2>WearWeather</h2>
+            </div>
+
+            <!-- Wake Up Time & Schedule Settings -->
+            <div class="card settings-card">
+                <h3><i class="fa-regular fa-clock"></i> Daily Schedule</h3>
+                <p class="subtitle">Set your schedule to get morning commute outfits</p>
+                
+                <div class="input-group">
+                    <label for="wake-time"><i class="fa-solid fa-sun"></i> Wake-up Time</label>
+                    <input type="time" id="wake-time" value="07:00">
+                </div>
+
+                <div class="input-group">
+                    <label for="leave-time"><i class="fa-solid fa-person-walking-luggage"></i> Out the Door</label>
+                    <input type="time" id="leave-time" value="08:00">
+                </div>
+
+                <div class="input-group">
+                    <label for="activity-level"><i class="fa-solid fa-person-running"></i> Activity Level</label>
+                    <select id="activity-level">
+                        <option value="low">Low (Desk Work / Chilling)</option>
+                        <option value="moderate" selected>Moderate (Walking / Chores)</option>
+                        <option value="high">High (Active Outdoor / Running)</option>
+                    </select>
+                </div>
+
+                <button id="apply-schedule-btn" class="btn-primary">
+                    <i class="fa-solid fa-arrows-rotate"></i> Update Recommendations
+                </button>
+            </div>
+
+            <!-- API / Location Settings -->
+            <div class="card settings-card">
+                <h3><i class="fa-solid fa-gear"></i> Preferences</h3>
+                <div class="input-group">
+                    <label for="temp-unit"><i class="fa-solid fa-temperature-half"></i> Temperature Unit</label>
+                    <div class="toggle-group">
+                        <button class="unit-btn active" data-unit="C">°C</button>
+                        <button class="unit-btn" data-unit="F">°F</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="api-key-input"><i class="fa-solid fa-key"></i> OpenWeather API Key (Optional)</label>
+                    <input type="text" id="api-key-input" placeholder="Enter API Key for real weather...">
+                    <small>Leave empty to use demo dynamic weather simulation</small>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Search & Quick Controls Header -->
+            <header class="top-header">
+                <div class="search-bar-container">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="city-search" placeholder="Search city (e.g. New York, London, Tokyo)..." value="New York">
+                    <button id="search-btn"><i class="fa-solid fa-arrow-right"></i></button>
+                    <button id="geo-btn" title="Use My Current Location"><i class="fa-solid fa-location-crosshairs"></i></button>
+                </div>
+                <div class="quick-preset-pills">
+                    <span class="pill active" data-city="New York">New York</span>
+                    <span class="pill" data-city="London">London</span>
+                    <span class="pill" data-city="Tokyo">Tokyo</span>
+                    <span class="pill" data-city="Reykjavik">Reykjavik</span>
+                    <span class="pill" data-city="Dubai">Dubai</span>
+                </div>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                
+                <!-- Current Weather Card -->
+                <section class="card weather-hero-card">
+                    <div class="weather-header">
+                        <div>
+                            <h1 id="city-name">New York</h1>
+                            <p id="current-date">Wednesday, Oct 21</p>
+                        </div>
+                        <span id="weather-badge" class="weather-badge">Clear Sky</span>
+                    </div>
+
+                    <div class="weather-main-display">
+                        <div class="weather-icon-wrapper">
+                            <i id="main-weather-icon" class="fa-solid fa-sun weather-icon"></i>
+                        </div>
+                        <div class="temp-wrapper">
+                            <span id="current-temp" class="big-temp">22°</span>
+                            <div class="feels-like-box">
+                                <span>Feels like <strong id="feels-like-temp">23°</strong></span>
+                                <span class="temp-high-low">H: <span id="temp-high">25°</span> | L: <span id="temp-low">16°</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="weather-stats-grid">
+                        <div class="stat-item">
+                            <i class="fa-solid fa-droplet"></i>
+                            <div>
+                                <span class="stat-label">Humidity</span>
+                                <span id="humidity-val" class="stat-value">55%</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fa-solid fa-wind"></i>
+                            <div>
+                                <span class="stat-label">Wind</span>
+                                <span id="wind-val" class="stat-value">12 km/h</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fa-solid fa-umbrella"></i>
+                            <div>
+                                <span class="stat-label">Rain Chance</span>
+                                <span id="rain-val" class="stat-value">10%</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fa-solid fa-sun"></i>
+                            <div>
+                                <span class="stat-label">UV Index</span>
+                                <span id="uv-val" class="stat-value">5 (Moderate)</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- What to Wear Recommendation Card -->
+                <section class="card outfit-hero-card">
+                    <div class="card-header">
+                        <div>
+                            <h3><i class="fa-solid fa-vest"></i> What to Wear Today</h3>
+                            <p class="subtitle" id="outfit-headline">Comfortable, light warm layering</p>
+                        </div>
+                        <div class="schedule-summary-tag">
+                            <i class="fa-regular fa-bell"></i> Morning (<span id="morning-time-display">07:00</span>): <span id="morning-temp-display">17°C</span>
+                        </div>
+                    </div>
+
+                    <!-- Visual Outfit Avatar Display -->
+                    <div class="avatar-display-container">
+                        <div class="avatar-box">
+                            <div class="clothing-layer layer-head" id="layer-head">
+                                <i class="fa-solid fa-hat-cowboy"></i>
+                                <span class="layer-text">Sunglasses / Cap</span>
+                            </div>
+                            <div class="clothing-layer layer-torso" id="layer-torso">
+                                <i class="fa-solid fa-shirt"></i>
+                                <span class="layer-text">Cotton T-Shirt + Light Denim Jacket</span>
+                            </div>
+                            <div class="clothing-layer layer-legs" id="layer-legs">
+                                <i class="fa-solid fa-person-dots-from-line"></i>
+                                <span class="layer-text">Chinos / Jeans</span>
+                            </div>
+                            <div class="clothing-layer layer-feet" id="layer-feet">
+                                <i class="fa-solid fa-shoe-prints"></i>
+                                <span class="layer-text">Comfortable Sneakers</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accessories & Extras checklist -->
+                    <div class="extras-section">
+                        <h4><i class="fa-solid fa-briefcase"></i> Don't Forget to Take:</h4>
+                        <div id="essentials-list" class="essentials-pills">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Hourly Forecast & Morning Commute Focus Slider -->
+            <section class="card hourly-card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-clock"></i> Today's Hourly Breakdown & Commute Alert</h3>
+                    <div class="schedule-legend">
+                        <span class="legend-item"><span class="dot wake-dot"></span> Wake-up Time</span>
+                        <span class="legend-item"><span class="dot leave-dot"></span> Commute Time</span>
+                    </div>
+                </div>
+
+                <div id="hourly-container" class="hourly-slider">
+                    <!-- Dynamic hourly forecast items will be rendered here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
