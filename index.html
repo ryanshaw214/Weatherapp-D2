@@ -3,33 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WearWeather - Smart Outfit & Weather Planner</title>
+    <title>WearWeather - Smart Outfit & Commute Planner</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="theme-sunny">
+    <!-- Dynamic Animated Weather Background Layer -->
+    <div id="weather-bg-fx" class="weather-bg-fx">
+        <!-- Sun FX Element -->
+        <div id="bg-sun-element" class="bg-sun">
+            <div class="sun-core"></div>
+            <div class="sun-rays"></div>
+        </div>
+
+        <!-- Rain / Snow Dynamic Canvas -->
+        <canvas id="weather-canvas"></canvas>
+    </div>
+
+    <!-- Active Alarm Overlay Modal -->
+    <div id="alarm-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="alarm-bell-ring">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <h2>Wake Up Time!</h2>
+            <p id="alarm-time-display">07:00 AM</p>
+            <p class="alarm-subtext" id="alarm-weather-hint">Current Morning Temp: 12°C - Grab a light jacket!</p>
+            <div id="car-start-modal-alert" class="car-alert-box hidden">
+                <i class="fa-solid fa-car-side"></i>
+                <div>
+                    <strong>Cold Weather Alert!</strong>
+                    <p>It's cold outside. Start your car now to warm it up before your commute!</p>
+                </div>
+            </div>
+            <button id="dismiss-alarm-btn" class="btn-alarm-dismiss">
+                <i class="fa-solid fa-check"></i> Dismiss Alarm
+            </button>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar Navigation & Settings -->
         <aside class="sidebar">
             <div class="brand">
                 <i class="fa-solid fa-shirt brand-icon"></i>
-                <h2>WearWeather</h2>
+                <div>
+                    <h2>WearWeather</h2>
+                    <span class="brand-tagline">Outfit & Commute Assistant</span>
+                </div>
             </div>
 
-            <!-- Wake Up Time & Schedule Settings -->
+            <!-- Schedule & Alarm Settings -->
             <div class="card settings-card">
-                <h3><i class="fa-regular fa-clock"></i> Daily Schedule</h3>
-                <p class="subtitle">Set your schedule to get morning commute outfits</p>
+                <div class="card-title-row">
+                    <h3><i class="fa-regular fa-clock"></i> Schedule & Alarm</h3>
+                </div>
+                <p class="subtitle">Set your schedule, alarm chime & commute reminders</p>
                 
                 <div class="input-group">
                     <label for="wake-time"><i class="fa-solid fa-sun"></i> Wake-up Time</label>
-                    <input type="time" id="wake-time" value="07:00">
+                    <div class="input-with-action">
+                        <input type="time" id="wake-time" value="07:00">
+                        <button id="toggle-alarm-btn" class="alarm-toggle-btn active" title="Toggle Alarm On/Off">
+                            <i class="fa-solid fa-bell"></i>
+                        </button>
+                    </div>
+                    <small id="alarm-status-text" class="status-active"><i class="fa-solid fa-circle-check"></i> Alarm set for 07:00</small>
                 </div>
 
                 <div class="input-group">
                     <label for="leave-time"><i class="fa-solid fa-person-walking-luggage"></i> Out the Door</label>
                     <input type="time" id="leave-time" value="08:00">
+                </div>
+
+                <!-- Cold Weather Car Start Settings -->
+                <div class="car-reminder-box">
+                    <div class="toggle-row">
+                        <label for="car-start-toggle" class="toggle-label">
+                            <i class="fa-solid fa-car"></i> Cold Car Start Reminder
+                        </label>
+                        <input type="checkbox" id="car-start-toggle" checked>
+                    </div>
+                    <div class="car-settings-detail" id="car-settings-detail">
+                        <small>Remind me to start car if morning temp is under:</small>
+                        <div class="threshold-input-row">
+                            <input type="number" id="car-temp-threshold" value="5" min="-20" max="20">
+                            <span class="unit-label" id="threshold-unit-label">°C</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="input-group">
@@ -42,15 +104,15 @@
                 </div>
 
                 <button id="apply-schedule-btn" class="btn-primary">
-                    <i class="fa-solid fa-arrows-rotate"></i> Update Recommendations
+                    <i class="fa-solid fa-arrows-rotate"></i> Update Schedule
                 </button>
             </div>
 
-            <!-- API / Location Settings -->
+            <!-- API / Preferences Settings -->
             <div class="card settings-card">
-                <h3><i class="fa-solid fa-gear"></i> Preferences</h3>
+                <h3><i class="fa-solid fa-sliders"></i> Preferences</h3>
                 <div class="input-group">
-                    <label for="temp-unit"><i class="fa-solid fa-temperature-half"></i> Temperature Unit</label>
+                    <label><i class="fa-solid fa-temperature-half"></i> Temperature Unit</label>
                     <div class="toggle-group">
                         <button class="unit-btn active" data-unit="C">°C</button>
                         <button class="unit-btn" data-unit="F">°F</button>
@@ -59,8 +121,8 @@
 
                 <div class="input-group">
                     <label for="api-key-input"><i class="fa-solid fa-key"></i> OpenWeather API Key (Optional)</label>
-                    <input type="text" id="api-key-input" placeholder="Enter API Key for real weather...">
-                    <small>Leave empty to use demo dynamic weather simulation</small>
+                    <input type="text" id="api-key-input" placeholder="Enter API Key...">
+                    <small>Leave empty to use demo dynamic simulation</small>
                 </div>
             </div>
         </aside>
@@ -83,6 +145,18 @@
                     <span class="pill" data-city="Dubai">Dubai</span>
                 </div>
             </header>
+
+            <!-- Cold Weather Car Start Banner Alert -->
+            <div id="car-start-banner" class="car-start-banner hidden">
+                <div class="car-banner-content">
+                    <i class="fa-solid fa-snowflake banner-icon"></i>
+                    <div>
+                        <strong>Commute Alert: Cold Morning Ahead!</strong>
+                        <p id="car-banner-text">Morning temperature is projected at 2°C. Remember to start your car early to defrost!</p>
+                    </div>
+                </div>
+                <span class="banner-badge">Warm Up Car 🚗</span>
+            </div>
 
             <!-- Dashboard Grid -->
             <div class="dashboard-grid">
@@ -146,7 +220,7 @@
                 <section class="card outfit-hero-card">
                     <div class="card-header">
                         <div>
-                            <h3><i class="fa-solid fa-vest"></i> What to Wear Today</h3>
+                            <h3><i class="fa-solid fa-shirt"></i> What to Wear Today</h3>
                             <p class="subtitle" id="outfit-headline">Comfortable, light warm layering</p>
                         </div>
                         <div class="schedule-summary-tag">
@@ -192,7 +266,7 @@
                 <div class="card-header">
                     <h3><i class="fa-solid fa-clock"></i> Today's Hourly Breakdown & Commute Alert</h3>
                     <div class="schedule-legend">
-                        <span class="legend-item"><span class="dot wake-dot"></span> Wake-up Time</span>
+                        <span class="legend-item"><span class="dot wake-dot"></span> Wake-up & Alarm</span>
                         <span class="legend-item"><span class="dot leave-dot"></span> Commute Time</span>
                     </div>
                 </div>
@@ -207,3 +281,4 @@
     <script src="script.js"></script>
 </body>
 </html>
+  
