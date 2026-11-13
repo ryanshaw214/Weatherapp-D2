@@ -1,5 +1,6 @@
 /* ==========================================================================
-   WearWeather - Polished Stylesheet with Animated Weather Background
+   WearWeather - Polished Stylesheet with Animated Weather Background,
+   Mode Tabs, Pet Safety & Precision Farmer Command Center
    ========================================================================== */
 
 :root {
@@ -73,7 +74,6 @@ body {
     height: 100%;
 }
 
-/* Animated Sun Element */
 .bg-sun {
     position: absolute;
     top: 50px;
@@ -296,6 +296,62 @@ body {
     font-weight: 600;
 }
 
+/* Sidebar Mode Navigation */
+.mode-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.55);
+    padding: 8px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass);
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 11px 14px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.mode-btn i {
+    width: 18px;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.mode-btn:hover {
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--text-primary);
+}
+
+.mode-btn.active {
+    background: var(--primary-accent);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.mode-btn[data-mode="farmer"].active {
+    background: #16a34a;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+.mode-btn[data-mode="pets"].active {
+    background: #0284c7;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+}
+
 .card {
     background: var(--bg-glass-card);
     border-radius: var(--radius-md);
@@ -515,6 +571,7 @@ body {
 .quick-preset-pills {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .pill {
@@ -576,17 +633,11 @@ body {
     border-radius: 20px;
 }
 
-/* Dashboard Grid */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-}
-
-.weather-hero-card, .outfit-hero-card {
+/* Persistent Weather Hero Card */
+.weather-header {
     display: flex;
-    flex-direction: column;
     justify-content: space-between;
+    align-items: flex-start;
 }
 
 .weather-header h1 { font-size: 1.8rem; font-weight: 800; }
@@ -599,11 +650,19 @@ body {
     font-weight: 700;
 }
 
+.weather-split-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
 .weather-main-display {
     display: flex;
     align-items: center;
     gap: 18px;
-    margin: 14px 0;
+    margin: 10px 0;
 }
 
 .weather-icon { font-size: 3.2rem; color: #f59e0b; }
@@ -614,8 +673,11 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    padding-top: 12px;
-    border-top: 1px solid #f1f5f9;
+}
+
+.compact-stats {
+    min-width: 300px;
+    flex: 1;
 }
 
 .stat-item {
@@ -631,7 +693,25 @@ body {
 .stat-label { display: block; font-size: 0.68rem; color: var(--text-secondary); }
 .stat-value { font-size: 0.82rem; font-weight: 700; }
 
-.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+/* Mode Views */
+.mode-view {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    animation: fadeInTab 0.25s ease-out;
+}
+
+.mode-view.hidden {
+    display: none;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Outfit Card */
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .schedule-summary-tag {
     background: #fef3c7;
     color: #d97706;
@@ -729,8 +809,182 @@ body {
 .hourly-temp { font-size: 0.9rem; font-weight: 800; }
 .hourly-outfit { font-size: 0.65rem; color: var(--text-secondary); }
 
+/* --------------------------------------------------------------------------
+   Pet Safety Component Styles
+   -------------------------------------------------------------------------- */
+.pet-card {
+    border-top: 4px solid #0284c7;
+}
+
+.pet-status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+.pet-status-badge.safe { background: #dcfce7; color: #15803d; }
+.pet-status-badge.warning { background: #fef3c7; color: #b45309; }
+.pet-status-badge.danger { background: #fee2e2; color: #b91c1c; }
+
+.pet-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.pet-stat-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-glass);
+}
+
+.pet-stat-box i { font-size: 1.3rem; color: #0284c7; }
+.pet-label { display: block; font-size: 0.72rem; color: var(--text-secondary); }
+.pet-tips-container {
+    background: rgba(255, 255, 255, 0.5);
+    padding: 14px;
+    border-radius: var(--radius-sm);
+}
+
+#pet-advice-text {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Precision Farmer Command Center & Radar Styles
+   -------------------------------------------------------------------------- */
+.ag-command-card {
+    border-top: 4px solid #16a34a;
+}
+
+.crop-selector-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0fdf4;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid #bbf7d0;
+}
+
+.crop-selector-box label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #15803d;
+}
+
+.crop-selector-box select {
+    border: 1px solid #86efac;
+    background: #ffffff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+}
+
+.ag-command-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 14px 0;
+}
+
+@media (max-width: 900px) {
+    .ag-command-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.ag-metric-box {
+    background: rgba(255, 255, 255, 0.75);
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ag-metric-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.ag-metric-header i { color: #16a34a; }
+
+.ag-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.ag-metric-box small {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.25;
+}
+
+.ag-advisory-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+}
+
+@media (max-width: 768px) {
+    .ag-advisory-bar { grid-template-columns: 1fr; }
+}
+
+.advisory-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.78rem;
+}
+
+.advisory-item i {
+    font-size: 1.1rem;
+    color: #15803d;
+}
+
+.green-text { color: #16a34a !important; }
+.orange-text { color: #ea580c !important; }
+.red-text { color: #dc2626 !important; }
+
+/* Radar Map Container */
+.radar-map-box {
+    width: 100%;
+    height: 320px;
+    border-radius: var(--radius-md);
+    margin-top: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-glass);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.radar-legend { display: flex; gap: 12px; font-size: 0.72rem; color: var(--text-secondary); }
+.rain-light-dot { background: #60a5fa; }
+.rain-heavy-dot { background: #1e40af; }
+
 @media (max-width: 1024px) {
     .app-container { flex-direction: column; }
     .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-glass); }
-    .dashboard-grid { grid-template-columns: 1fr; }
+    .mode-nav { flex-direction: row; }
+    .mode-btn { justify-content: center; padding: 10px 8px; font-size: 0.8rem; }
 }
