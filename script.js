@@ -1,5 +1,5 @@
 /* ==========================================================================
-   WearWeather - App Logic, Alarm, Car Reminder & Dynamic Canvas FX Engine
+   WearWeather - App Logic, Alarm, Pet Safety & Precision Ag Radar Engine
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUnit = 'C';
     let currentCity = 'New York';
     let apiKey = '';
+    let currentCoords = { lat: 40.7128, lon: -74.0060 }; // Default NY
     
     let userSchedule = {
         wakeTime: '07:00',
@@ -19,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let weatherData = null;
     let alarmTriggered = false;
+    let mapInstance = null;
+    let radarLayer = null;
 
     // Audio Synthesizer
     let audioCtx = null;
@@ -32,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let animationFrameId = null;
     let activeWeatherMode = 'sunny'; // 'sunny', 'rainy', 'snowy', 'cloudy'
 
-    // Resize canvas to window size
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -41,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     resizeCanvas();
 
     // --- DOM Elements ---
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const modeViews = document.querySelectorAll('.mode-view');
+
     const wakeTimeInput = document.getElementById('wake-time');
     const leaveTimeInput = document.getElementById('leave-time');
     const toggleAlarmBtn = document.getElementById('toggle-alarm-btn');
@@ -56,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activityInput = document.getElementById('activity-level');
     const applyScheduleBtn = document.getElementById('apply-schedule-btn');
     const apiKeyInput = document.getElementById('api-key-input');
+    const cropSelect = document.getElementById('crop-select');
     
     const citySearchInput = document.getElementById('city-search');
     const searchBtn = document.getElementById('search-btn');
@@ -89,6 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const essentialsList = document.getElementById('essentials-list');
     const hourlyContainer = document.getElementById('hourly-container');
 
+    // Pet Safety DOM Elements
+    const petHeadline = document.getElementById('pet-headline');
+    const pawStatusBadge = document.getElementById('paw-status-badge');
+    const asphaltTempVal = document.getElementById('asphalt-temp-val');
+    const petRiskVal = document.getElementById('pet-risk-val');
+    const petAdviceText = document.getElementById('pet-advice-text');
+    const petGearList = document.getElementById('pet-gear-list');
+
     // Modal Elements
     const alarmModal = document.getElementById('alarm-modal');
     const alarmTimeDisplay = document.getElementById('alarm-time-display');
@@ -101,11 +115,37 @@ document.addEventListener('DOMContentLoaded', () => {
         weekday: 'long', month: 'short', day: 'numeric'
     });
 
-    // Initial Weather Load
+    // Initialize Map, Weather & Alarm Checker
+    initAgRadarMap();
     fetchWeatherData(currentCity);
-
-    // Live Alarm Time Checker
     setInterval(checkAlarmClock, 1000);
+
+    // --- Sidebar Mode Navigation Switcher ---
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetMode = btn.dataset.mode;
+
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            modeViews.forEach(view => {
+                if (view.id === `view-${targetMode}`) {
+                    view.classList.remove('hidden');
+                    view.classList.add('active');
+                } else {
+                    view.classList.add('hidden');
+                    view.classList.remove('active');
+                }
+            });
+
+            if (targetMode === 'farmer' && mapInstance) {
+                setTimeout(() => {
+                    mapInstance.invalidateSize();
+                    mapInstance.setView([currentCoords.lat, currentCoords.lon], 8);
+                }, 100);
+            }
+        });
+    });
 
     // --- Event Listeners ---
     toggleAlarmBtn.addEventListener('click', () => {
@@ -133,9 +173,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         alarmTriggered = false;
         updateAlarmStatusUI();
-
         if (weatherData) updateUI(weatherData);
     });
+
+    if (cropSelect) {
+        cropSelect.addEventListener('change', () => {
+            if (weatherData) updateUI(weatherData);
+        });
+    }
 
     searchBtn.addEventListener('click', () => {
         const query = citySearchInput.value.trim();
@@ -185,6 +230,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dismissAlarmBtn.addEventListener('click', stopAlarm);
 
+    // --- Map Radar Setup ---
+    function initAgRadarMap() {
+        if (mapInstance) return;
+        mapInstance = L.map('ag-radar-map').setView([currentCoords.lat, currentCoords.lon], 7);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(mapInstance);
+
+        radarLayer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/nowcast_30/256/{z}/{x}/{y}/2/1_1.png', {
+            opacity: 0.6,
+            attribution: '&copy; RainViewer'
+        }).addTo(mapInstance);
+    }
+
+    function updateRadarMap(lat, lon) {
+        if (mapInstance) {
+            mapInstance.setView([lat, lon], 8);
+        }
+    }
+
     // --- Weather Fetchers ---
     async function fetchWeatherData(city) {
         if (apiKey) {
@@ -192,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`);
                 if (!res.ok) throw new Error('City not found');
                 const data = await res.json();
+                currentCoords = { lat: data.coord.lat, lon: data.coord.lon };
                 weatherData = parseRealApiData(data);
                 updateUI(weatherData);
                 return;
@@ -202,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchWeatherDataByCoords(lat, lon) {
+        currentCoords = { lat, lon };
         if (apiKey) {
             try {
                 const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`);
@@ -235,10 +304,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let condition = 'Clear';
         const lower = cityName.toLowerCase();
 
-        if (lower.includes('london') || lower.includes('rain')) { baseTemp = 11; condition = 'Rain'; }
-        else if (lower.includes('tokyo')) { baseTemp = 16; condition = 'Clouds'; }
-        else if (lower.includes('reykjavik') || lower.includes('ice') || lower.includes('snow')) { baseTemp = -2; condition = 'Snow'; }
-        else if (lower.includes('dubai') || lower.includes('hot')) { baseTemp = 34; condition = 'Clear'; }
+        if (lower.includes('london') || lower.includes('rain')) { baseTemp = 11; condition = 'Rain'; currentCoords = { lat: 51.5074, lon: -0.1278 }; }
+        else if (lower.includes('tokyo')) { baseTemp = 16; condition = 'Clouds'; currentCoords = { lat: 35.6762, lon: 139.6503 }; }
+        else if (lower.includes('reykjavik') || lower.includes('ice') || lower.includes('snow')) { baseTemp = -2; condition = 'Snow'; currentCoords = { lat: 64.1466, lon: -21.9426 }; }
+        else if (lower.includes('dubai') || lower.includes('hot')) { baseTemp = 34; condition = 'Clear'; currentCoords = { lat: 25.2048, lon: 55.2708 }; }
+        else { currentCoords = { lat: 40.7128, lon: -74.0060 }; }
 
         return {
             city: cityName,
@@ -284,10 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         weatherBadgeEl.textContent = data.description;
 
-        // Apply theme and initialize dynamic particle/sun FX
         applyThemeAndFx(data.condition, data.temp);
 
-        // Schedule & Outfit calculations
         const wakeHour = parseInt(userSchedule.wakeTime.split(':')[0], 10);
         const leaveHour = parseInt(userSchedule.leaveTime.split(':')[0], 10);
         const morningItem = data.hourly.find(h => h.hour === leaveHour) || data.hourly[8];
@@ -297,8 +365,11 @@ document.addEventListener('DOMContentLoaded', () => {
         morningTempDisplay.textContent = formatTemp(morningItem.temp);
 
         calculateOutfit(morningItem.temp, data.condition);
+        calculatePetSafety(data.temp, data.condition);
+        calculateAgMetrics(data);
         checkColdCarStartBanner(wakeItem.temp, morningItem.temp);
         renderHourlySlider(data.hourly);
+        updateRadarMap(currentCoords.lat, currentCoords.lon);
     }
 
     function applyThemeAndFx(condition, temp) {
@@ -323,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Dynamic Weather Animation Loop (Rain, Snow, Sun Rays) ---
+    // --- Dynamic Weather Animation Loop ---
     function setWeatherFxMode(mode) {
         activeWeatherMode = mode;
         particles = [];
@@ -414,6 +485,164 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         animationFrameId = requestAnimationFrame(animateWeatherCanvas);
+    }
+
+    // --- Pet Safety Calculation Module ---
+    function calculatePetSafety(airTempC, condition) {
+        const isSunny = condition === 'Clear';
+        const estimatedAsphaltC = isSunny ? airTempC + Math.round(airTempC * 0.75 + 5) : airTempC + 4;
+        
+        const formatTemp = (c) => currentUnit === 'F' ? `${Math.round(c * 9/5 + 32)}°F` : `${c}°C`;
+        asphaltTempVal.textContent = formatTemp(estimatedAsphaltC);
+
+        let statusClass = "safe";
+        let badgeText = "Safe Paws 🐾";
+        let headline = "Great conditions for dog walking!";
+        let advice = "Pavement temperatures are mild. Safe to walk standard distance on sidewalks.";
+        let risk = "Low";
+        let gear = ["Fresh Water", "Leash"];
+
+        if (estimatedAsphaltC >= 50 || airTempC >= 30) {
+            statusClass = "danger";
+            badgeText = "Extreme Paw Danger 🔥";
+            headline = "Hot pavement! High paw burn & heat stroke risk.";
+            advice = "Asphalt is hot enough to burn dog paw pads! Do the 7-second test with the back of your hand. Walk exclusively on grass or shaded dirt trails.";
+            risk = "CRITICAL";
+            gear.push("Dog Boots 🐾", "Paw Protection Wax", "Hydration Bowl");
+        } else if (estimatedAsphaltC >= 40 || airTempC >= 25) {
+            statusClass = "warning";
+            badgeText = "Caution Warm Paws ⚠️";
+            headline = "Elevated pavement heat.";
+            advice = "Pavement is getting hot. Limit sidewalk walks; prioritize early morning or evening walks.";
+            risk = "Moderate";
+            gear.push("Cooling Collar", "Portable Water");
+        } else if (airTempC <= 0) {
+            statusClass = "warning";
+            badgeText = "Freezing Paws ❄️";
+            headline = "Cold ground & ice risk.";
+            advice = "Freezing temperatures and road salt can damage paws. Keep walks short and clean paws after.";
+            risk = "Cold Stress";
+            gear.push("Insulated Pet Jacket 🐕", "Paw Salve / Boots");
+        }
+
+        pawStatusBadge.className = `pet-status-badge ${statusClass}`;
+        pawStatusBadge.textContent = badgeText;
+        petHeadline.textContent = headline;
+        petRiskVal.textContent = risk;
+        petAdviceText.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${advice}`;
+
+        petGearList.innerHTML = gear.map(item => `
+            <span class="essential-pill"><i class="fa-solid fa-paw"></i> ${item}</span>
+        `).join('');
+    }
+
+    // --- Precision Farmer & Agronomic Calculation Engine ---
+    function calculateAgMetrics(data) {
+        const tempC = data.temp;
+        const highC = data.high;
+        const lowC = data.low;
+        const humidity = data.humidity;
+        const windKmh = data.wind;
+        const condition = data.condition;
+
+        const formatTemp = (c) => currentUnit === 'F' ? `${Math.round(c * 9/5 + 32)}°F` : `${c}°C`;
+
+        // 1. Growing Degree Days (GDD)
+        const selectedOption = cropSelect ? cropSelect.options[cropSelect.selectedIndex] : null;
+        const baseTemp = selectedOption ? parseFloat(selectedOption.dataset.base) : 10;
+        
+        const effectiveMax = Math.min(highC, 30);
+        const effectiveMin = Math.max(lowC, baseTemp);
+        const avgTemp = (effectiveMax + effectiveMin) / 2;
+        const dailyGDD = Math.max(0, (avgTemp - baseTemp)).toFixed(1);
+
+        document.getElementById('ag-gdd-val').textContent = `+${dailyGDD} GDD`;
+        document.getElementById('ag-gdd-detail').textContent = dailyGDD > 8 
+            ? "Strong vegetative growth day" 
+            : (dailyGDD > 0 ? "Slow heat accumulation" : "Dormant / Below base temp");
+
+        // 2. Delta-T & Spray Drift Window
+        const deltaT = ((100 - humidity) / 5).toFixed(1);
+        const sprayStatusEl = document.getElementById('ag-spray-status');
+        const sprayDetailEl = document.getElementById('ag-spray-detail');
+
+        if (condition === 'Rain') {
+            sprayStatusEl.textContent = `Hold Spray (Rain)`;
+            sprayStatusEl.className = "ag-value red-text";
+            sprayDetailEl.textContent = "Wash-off risk — Do not apply chemicals";
+        } else if (windKmh > 18) {
+            sprayStatusEl.textContent = `High Drift (${windKmh} km/h)`;
+            sprayStatusEl.className = "ag-value red-text";
+            sprayDetailEl.textContent = "Wind exceeds safe spraying threshold";
+        } else if (deltaT > 10) {
+            sprayStatusEl.textContent = `Evap Risk (ΔT: ${deltaT}°C)`;
+            sprayStatusEl.className = "ag-value orange-text";
+            sprayDetailEl.textContent = "Droplets will evaporate before leaf contact";
+        } else if (deltaT < 2 || windKmh < 3) {
+            sprayStatusEl.textContent = `Inversion Risk (ΔT: ${deltaT}°C)`;
+            sprayStatusEl.className = "ag-value orange-text";
+            sprayDetailEl.textContent = "Dead calm / high humidity traps fine mist";
+        } else {
+            sprayStatusEl.textContent = `Optimal (ΔT: ${deltaT}°C)`;
+            sprayStatusEl.className = "ag-value green-text";
+            sprayDetailEl.textContent = `Ideal wind (${windKmh} km/h) & droplet survival`;
+        }
+
+        // 3. Soil Temperature (10cm depth) & Frost Risk
+        const soilTempC = Math.round((tempC * 0.75) + (lowC * 0.25));
+        const soilValEl = document.getElementById('ag-soil-val');
+        const germDetailEl = document.getElementById('ag-germination-detail');
+
+        if (lowC <= 1) {
+            soilValEl.textContent = `${formatTemp(soilTempC)} • FROST ALERT`;
+            soilValEl.className = "ag-value red-text";
+            germDetailEl.textContent = "Sub-freezing overnight lows! Protect tender crops";
+        } else if (soilTempC < 10) {
+            soilValEl.textContent = `${formatTemp(soilTempC)} • Cool Soil`;
+            soilValEl.className = "ag-value orange-text";
+            germDetailEl.textContent = "Suitable for wheat/peas; too cold for corn/beans";
+        } else {
+            soilValEl.textContent = `${formatTemp(soilTempC)} • No Frost`;
+            soilValEl.className = "ag-value green-text";
+            germDetailEl.textContent = "Prime germination temp for row crops";
+        }
+
+        // 4. Livestock Temperature-Humidity Index (THI)
+        const tempF = (tempC * 1.8) + 32;
+        const thi = Math.round(tempF - ((0.55 - 0.0055 * humidity) * (tempF - 26)));
+        const livestockEl = document.getElementById('ag-livestock-val');
+        const livestockDetailEl = document.getElementById('ag-livestock-detail');
+
+        if (thi >= 79) {
+            livestockEl.textContent = `Danger (THI: ${thi})`;
+            livestockEl.className = "ag-value red-text";
+            livestockDetailEl.textContent = "Severe heat stress! Run barn misters & fans";
+        } else if (thi >= 72) {
+            livestockEl.textContent = `Alert (THI: ${thi})`;
+            livestockEl.className = "ag-value orange-text";
+            livestockDetailEl.textContent = "Mild dairy/cattle stress — Ensure shade & water";
+        } else if (tempC <= -5) {
+            livestockEl.textContent = `Cold Stress (${formatTemp(tempC)})`;
+            livestockEl.className = "ag-value orange-text";
+            livestockDetailEl.textContent = "Increase feed rations & check trough heaters";
+        } else {
+            livestockEl.textContent = `Normal (THI: ${thi})`;
+            livestockEl.className = "ag-value green-text";
+            livestockDetailEl.textContent = "Comfortable thermal zone for livestock";
+        }
+
+        // 5. Field Trafficability & Evapotranspiration (ET0)
+        const trafficText = document.getElementById('ag-trafficability-text');
+        const etText = document.getElementById('ag-et-text');
+
+        if (condition === 'Rain' || humidity > 85) {
+            trafficText.textContent = "Saturated / Muddy — Avoid heavy tractors to prevent soil compaction.";
+        } else {
+            trafficText.textContent = "Firm topsoil — Good traction for tillage, planting, or harvest.";
+        }
+
+        const estET = Math.max(0.5, ((tempC * 0.22) + (windKmh * 0.08) - (humidity * 0.03))).toFixed(1);
+        etText.textContent = `${estET} mm/day moisture loss — ${estET > 4.5 ? "High irrigation demand" : "Normal moisture retention"}.`;
     }
 
     // --- Car Banner & Recommendation Logic ---
