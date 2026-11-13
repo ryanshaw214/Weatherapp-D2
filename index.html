@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WearWeather - Smart Outfit & Commute Planner</title>
+    <title>WearWeather - Smart Outfit, Pet & Farm Assistant</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet JS for Ag Radar Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="theme-sunny">
     <!-- Dynamic Animated Weather Background Layer -->
@@ -50,12 +53,28 @@
                 <i class="fa-solid fa-shirt brand-icon"></i>
                 <div>
                     <h2>WearWeather</h2>
-                    <span class="brand-tagline">Outfit & Commute Assistant</span>
+                    <span class="brand-tagline">Outfit, Pet & Farm Assistant</span>
                 </div>
             </div>
 
+            <!-- Mode Switcher Navigation -->
+            <nav class="mode-nav" aria-label="Dashboard Modes">
+                <button class="mode-btn active" data-mode="commute">
+                    <i class="fa-solid fa-shirt"></i>
+                    <span>Commute & Outfit</span>
+                </button>
+                <button class="mode-btn" data-mode="pets">
+                    <i class="fa-solid fa-paw"></i>
+                    <span>Pet Safety</span>
+                </button>
+                <button class="mode-btn" data-mode="farmer">
+                    <i class="fa-solid fa-tractor"></i>
+                    <span>Farmer Mode</span>
+                </button>
+            </nav>
+
             <!-- Schedule & Alarm Settings -->
-            <div class="card settings-card">
+            <div class="card settings-card" id="schedule-settings-card">
                 <div class="card-title-row">
                     <h3><i class="fa-regular fa-clock"></i> Schedule & Alarm</h3>
                 </div>
@@ -158,19 +177,17 @@
                 <span class="banner-badge">Warm Up Car 🚗</span>
             </div>
 
-            <!-- Dashboard Grid -->
-            <div class="dashboard-grid">
-                
-                <!-- Current Weather Card -->
-                <section class="card weather-hero-card">
-                    <div class="weather-header">
-                        <div>
-                            <h1 id="city-name">New York</h1>
-                            <p id="current-date">Wednesday, Oct 21</p>
-                        </div>
-                        <span id="weather-badge" class="weather-badge">Clear Sky</span>
+            <!-- Persistent Current Weather Summary Card -->
+            <section class="card weather-hero-card persistent-weather">
+                <div class="weather-header">
+                    <div>
+                        <h1 id="city-name">New York</h1>
+                        <p id="current-date">Wednesday, Oct 21</p>
                     </div>
+                    <span id="weather-badge" class="weather-badge">Clear Sky</span>
+                </div>
 
+                <div class="weather-split-row">
                     <div class="weather-main-display">
                         <div class="weather-icon-wrapper">
                             <i id="main-weather-icon" class="fa-solid fa-sun weather-icon"></i>
@@ -184,7 +201,7 @@
                         </div>
                     </div>
 
-                    <div class="weather-stats-grid">
+                    <div class="weather-stats-grid compact-stats">
                         <div class="stat-item">
                             <i class="fa-solid fa-droplet"></i>
                             <div>
@@ -214,9 +231,13 @@
                             </div>
                         </div>
                     </div>
-                </section>
+                </div>
+            </section>
 
-                <!-- What to Wear Recommendation Card -->
+            <!-- ==============================================================
+                 VIEW 1: COMMUTE & OUTFIT MODE
+                 ============================================================== -->
+            <div id="view-commute" class="mode-view active">
                 <section class="card outfit-hero-card">
                     <div class="card-header">
                         <div>
@@ -253,32 +274,156 @@
                     <!-- Accessories & Extras checklist -->
                     <div class="extras-section">
                         <h4><i class="fa-solid fa-briefcase"></i> Don't Forget to Take:</h4>
-                        <div id="essentials-list" class="essentials-pills">
-                            <!-- Populated dynamically -->
+                        <div id="essentials-list" class="essentials-pills"></div>
+                    </div>
+                </section>
+
+                <!-- Hourly Forecast & Morning Commute Focus Slider -->
+                <section class="card hourly-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-clock"></i> Today's Hourly Breakdown & Commute Alert</h3>
+                        <div class="schedule-legend">
+                            <span class="legend-item"><span class="dot wake-dot"></span> Wake-up & Alarm</span>
+                            <span class="legend-item"><span class="dot leave-dot"></span> Commute Time</span>
+                        </div>
+                    </div>
+
+                    <div id="hourly-container" class="hourly-slider"></div>
+                </section>
+            </div>
+
+            <!-- ==============================================================
+                 VIEW 2: PET SAFETY MODE
+                 ============================================================== -->
+            <div id="view-pets" class="mode-view hidden">
+                <section class="card pet-card">
+                    <div class="card-header">
+                        <div>
+                            <h3><i class="fa-solid fa-dog"></i> Pet Walking & Paw Safety</h3>
+                            <p class="subtitle" id="pet-headline">Optimal walking conditions</p>
+                        </div>
+                        <span id="paw-status-badge" class="pet-status-badge safe">Safe Paws 🐾</span>
+                    </div>
+
+                    <div class="pet-stats-grid">
+                        <div class="pet-stat-box">
+                            <i class="fa-solid fa-temperature-arrow-up"></i>
+                            <div>
+                                <span class="pet-label">Est. Asphalt Temp</span>
+                                <strong id="asphalt-temp-val">28°C</strong>
+                            </div>
+                        </div>
+                        <div class="pet-stat-box">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                            <div>
+                                <span class="pet-label">Heat / Cold Stress Risk</span>
+                                <strong id="pet-risk-val">Low</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pet-tips-container">
+                        <p id="pet-advice-text"><i class="fa-solid fa-circle-info"></i> Pavement is safe for dogs. Standard walk schedule applies.</p>
+                        <div id="pet-gear-list" class="essentials-pills"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ==============================================================
+                 VIEW 3: FARMER COMMAND CENTER MODE
+                 ============================================================== -->
+            <div id="view-farmer" class="mode-view hidden">
+                <section class="card ag-command-card">
+                    <div class="card-header">
+                        <div>
+                            <h3><i class="fa-solid fa-tractor"></i> Precision Farmer Command Center</h3>
+                            <p class="subtitle">Field operations, crop GDD, spray drift & livestock alerts</p>
+                        </div>
+                        <div class="crop-selector-box">
+                            <label for="crop-select"><i class="fa-solid fa-wheat-awn"></i> Active Crop:</label>
+                            <select id="crop-select">
+                                <option value="corn" data-base="10">Corn / Maize (Base 10°C)</option>
+                                <option value="soybeans" data-base="10">Soybeans (Base 10°C)</option>
+                                <option value="wheat" data-base="4">Winter Wheat (Base 4°C)</option>
+                                <option value="orchard" data-base="7">Apples / Stone Fruit (Base 7°C)</option>
+                                <option value="vegetables" data-base="5">Cool-Season Veg (Base 5°C)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Primary Field Metrics Grid -->
+                    <div class="ag-command-grid">
+                        <div class="ag-metric-box">
+                            <div class="ag-metric-header">
+                                <i class="fa-solid fa-spray-can-sparkles"></i>
+                                <span>Spray Window (Delta-T)</span>
+                            </div>
+                            <strong id="ag-spray-status" class="ag-value green-text">Optimal (Delta-T: 4.2°C)</strong>
+                            <small id="ag-spray-detail">Low drift & evaporation risk</small>
+                        </div>
+
+                        <div class="ag-metric-box">
+                            <div class="ag-metric-header">
+                                <i class="fa-solid fa-seedling"></i>
+                                <span>Daily Crop GDD</span>
+                            </div>
+                            <strong id="ag-gdd-val" class="ag-value">+11.5 GDD</strong>
+                            <small id="ag-gdd-detail">Good heat unit accumulation</small>
+                        </div>
+
+                        <div class="ag-metric-box">
+                            <div class="ag-metric-header">
+                                <i class="fa-solid fa-temperature-arrow-down"></i>
+                                <span>Soil Temp (10cm) & Frost</span>
+                            </div>
+                            <strong id="ag-soil-val" class="ag-value">15°C • No Frost</strong>
+                            <small id="ag-germination-detail">Safe for planting warm-season seeds</small>
+                        </div>
+
+                        <div class="ag-metric-box">
+                            <div class="ag-metric-header">
+                                <i class="fa-solid fa-cow"></i>
+                                <span>Livestock Stress (THI)</span>
+                            </div>
+                            <strong id="ag-livestock-val" class="ag-value green-text">Normal (THI: 64)</strong>
+                            <small id="ag-livestock-detail">No thermal stress on herd</small>
+                        </div>
+                    </div>
+
+                    <!-- Field Trafficability & Irrigation Advisory Banner -->
+                    <div class="ag-advisory-bar">
+                        <div class="advisory-item">
+                            <i class="fa-solid fa-truck-monster"></i>
+                            <div>
+                                <strong>Field Trafficability:</strong>
+                                <span id="ag-trafficability-text">Firm ground — Safe for heavy machinery & tractors.</span>
+                            </div>
+                        </div>
+                        <div class="advisory-item">
+                            <i class="fa-solid fa-faucet-drip"></i>
+                            <div>
+                                <strong>Evapotranspiration (ET₀):</strong>
+                                <span id="ag-et-text">3.8 mm/day — Standard irrigation schedule.</span>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-            </div>
-
-            <!-- Hourly Forecast & Morning Commute Focus Slider -->
-            <section class="card hourly-card">
-                <div class="card-header">
-                    <h3><i class="fa-solid fa-clock"></i> Today's Hourly Breakdown & Commute Alert</h3>
-                    <div class="schedule-legend">
-                        <span class="legend-item"><span class="dot wake-dot"></span> Wake-up & Alarm</span>
-                        <span class="legend-item"><span class="dot leave-dot"></span> Commute Time</span>
+                <!-- Farmer Live Radar Map -->
+                <section class="card radar-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-radar"></i> Live Farmer Radar & Precipitation Layer</h3>
+                        <div class="radar-legend">
+                            <span class="legend-item"><span class="dot rain-light-dot"></span> Light Rain</span>
+                            <span class="legend-item"><span class="dot rain-heavy-dot"></span> Heavy Rain / Storm</span>
+                        </div>
                     </div>
-                </div>
-
-                <div id="hourly-container" class="hourly-slider">
-                    <!-- Dynamic hourly forecast items will be rendered here -->
-                </div>
-            </section>
+                    <div id="ag-radar-map" class="radar-map-box"></div>
+                </section>
+            </div>
         </main>
     </div>
 
     <script src="script.js"></script>
 </body>
 </html>
-  
